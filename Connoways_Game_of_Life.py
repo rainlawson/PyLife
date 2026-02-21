@@ -28,7 +28,10 @@ cell_height = WINDOW_HEIGHT // 2
 # Declare game state and initialize to "menu"
 game_state = "menu"
 
-# Defining Functions
+# Game grid size initialized to debug setting
+game_grid_size = 2
+
+# Defining Functions & Classes
 # ------------------------------------------------------------------------------------------------------------------- #
 # Define draw menu button function
 class MenuButton:
@@ -55,13 +58,13 @@ class MenuButton:
     def draw(self, screen):
         # screen.blit(self.surface, self.location)
         line_height = self.font.get_linesize()
-        x = self.location.left
-        y = self.location.top
+        line_x = self.location.left
+        line_y = self.location.top
 
-        for line in self.text.split("\n"):
-            surface = self.font.render(line, True, self.color)
-            screen.blit(surface, (x, y))
-            y += line_height
+        for line_text in self.text.split("\n"):
+            line = self.font.render(line_text, True, self.color)
+            screen.blit(line, (line_x, line_y))
+            line_y += line_height
 
     def clicked(self, pos):
         return self.location.collidepoint(pos)
@@ -117,7 +120,6 @@ def create_menu():
     menu_button_list.append(small_grid_button)
     menu_button_list.append(medium_grid_button)
     menu_button_list.append(large_grid_button)
-    # TODO: 3 buttons with different positions & add them to a list of buttons
 
     # Infinite loop
     global game_state
@@ -126,12 +128,26 @@ def create_menu():
         # "in" is interpreted different ways, boolean or iterator, depending on the context
         # So I have to remove the parentheses from this and all lines, just to make things consistent
         for event in pygame.event.get():
-            if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
+            if event.type == pygame.QUIT:
+                print("QUIT")
+                game_state = "quit"
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 print("ESC")
                 game_state = "quit"
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 print("MOUSEBUTTONDOWN")
                 mouse_pos = pygame.mouse.get_pos()
+                mouse_x, mouse_y = pygame.mouse.get_pos()
+                for button in menu_button_list:
+                    if button.left <= mouse_x <= button.left + button.width and button.top <= mouse_y <= button.top + button.height:
+                        if "16" in button.text:
+                            game_grid_size = 16
+                        elif "32" in button.text:
+                            game_grid_size = 32
+                        elif "64" in button.text:
+                            game_grid_size = 64
+                        game_state = "game"
+                # TODO: make this a separate function
 
         mouse_x, mouse_y = pygame.mouse.get_pos()
 
@@ -145,9 +161,98 @@ def create_menu():
             button.draw(screen)
         pygame.display.update()
 
-# Define cells
+# define neighbors class
+class Neighbors:
+    def __init__(self, top, top_right, right, bottom_right, bottom, bottom_left, left, top_left):
+        self.top = top
+        self.top_right = top_right
+        self.right = right
+        self.bottom_right = bottom_right
+        self.bottom = bottom
+        self.bottom_left = bottom_left
+        self.left = left
+        self.top_left = top_left
 
-# Define "start game" function
+# Define cell class
+class Cell:
+    def __init__(self, grid_pos_x, grid_pos_y, width, height, neighbors, status):
+        self.grid_pos_x = grid_pos_x
+        self.grid_pos_y = grid_pos_y
+        self.width = width
+        self.height = height
+        self.neighbors = neighbors
+        self.status = status
+        self.live_color = (30, 225, 30)
+        self.dead_color = (60, 60, 60)
+
+    # Vibe coded
+    def draw(self, screen):
+        left = margin_x + self.grid_pos_x * self.width
+        top = margin_y + self.grid_pos_y * self.height
+
+        rect = pygame.Rect(left, top, self.width, self.height)
+
+        # Never seen this formatting before
+        color = (30, 225, 30) if self.status else (60, 60, 60)
+
+        pygame.draw.rect(screen, color, rect)
+
+    def clicked(self, pos):
+        left = margin_x + self.grid_pos_x * self.width
+        top = margin_y + self.grid_pos_y * self.height
+        rect = pygame.Rect(left, top, self.width, self.height)
+        return rect.collidepoint(pos)
+
+# Define grid builder function
+def grid_builder(grid_cells):
+    grid_width = game_grid_size
+    grid_height = game_grid_size
+
+    cell_width = (WINDOW_WIDTH - 2 * margin_x) // grid_width
+    cell_height = (WINDOW_HEIGHT - 2 * margin_y) // grid_height
+    # Make them square
+    if (cell_width > cell_height):
+        cell_width = cell_height
+    elif (cell_width < cell_height):
+        cell_height = cell_width
+
+    # Will need these
+    top_neighbor = (-1, -1)
+    top_right_neighbor = (-1, -1)
+    right_neighbor = (-1, -1)
+    bottom_right_neighbor = (-1, -1)
+    bottom_neighbor = (-1, -1)
+    bottom_left_neighbor = (-1, -1)
+    left_neighbor = (-1, -1)
+    top_left_neighbor = (-1, -1)
+
+    # Or, since tuples are immutable & N^2...
+    top_neighbor_x = -1
+    top_right_neighbor_x = -1
+    right_neighbor_x = -1
+    bottom_right_neighbor_x = -1
+    bottom_neighbor_x = -1
+    bottom_left_neighbor_x = -1
+    left_neighbor_x = -1
+    top_left_neighbor_x = -1
+
+    for x in range(grid_width):
+        # To avoid doing things N^2 times
+
+        for y in range(grid_height):
+            # Computing this N^2 times (yeesh)
+            # TODO: Fix this
+            top_neighbor = (x, y + 1)
+            top_right_neighbor = (x + 1, y + 1)
+            right_neighbor = (x + 1, y)
+            bottom_right_neighbor = (x + 1, y - 1)
+            bottom_neighbor = (x, y - 1)
+            bottom_left_neighbor = (x - 1, y - 1)
+            left_neighbor = (x - 1, y)
+            top_left_neighbor = (x - 1, y + 1)
+
+            cell_neighbors = (top_neighbor, top_right_neighbor, right_neighbor, bottom_right_neighbor, bottom_neighbor, bottom_left_neighbor, left_neighbor, top_left_neighbor)
+            grid_cells[x][y] = Cell(x, y, cell_width, cell_height, cell_neighbors, False)
 
 # Define "progress one step" function
 
@@ -158,6 +263,39 @@ def create_menu():
 # Define "autoplay speed two" helper function
 
 # Define "autoplay speed three" helper function
+
+# Define "start game" function
+def start_game():
+    screen.fill((30, 30, 30))
+
+    # Need 2D array for grid builder to build
+    grid_cells = [
+        [None for _ in range(game_grid_size)]
+        for _ in range(game_grid_size)
+    ]
+
+    # Call grid_builder to build the grid of cells based on the game_grid_size
+    grid_builder(grid_cells)
+
+    global game_state
+    print(game_state)
+    while game_state == "game":
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                print("QUIT")
+                game_state = "quit"
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                print("ESC")
+                game_state = "menu"
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                print("MOUSEBUTTONDOWN")
+                mouse_pos = pygame.mouse.get_pos()
+
+        for x in range(game_grid_size):
+            for y in range(game_grid_size):
+                print("Drawing Cell " + str(x) + ", " + str(y))
+                grid_cells[x][y].draw(screen)
+        pygame.display.update()
 
 # Playing The Game
 # ------------------------------------------------------------------------------------------------------------------- #
@@ -188,6 +326,8 @@ while game_state != "quit":
 
     # Once menu options are selected, launch "start game" function and change game state\
     # Rest should be handled withing the "start game" function
+    if game_state == "game":
+        start_game()
 
 # Quit properly
 pygame.quit()
