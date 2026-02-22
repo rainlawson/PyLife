@@ -67,6 +67,7 @@ class MenuButton:
             line_y += line_height
 
     def clicked(self, pos):
+        # TODO: Use this method instead of the ugly if statement
         return self.location.collidepoint(pos)
 
     # Old
@@ -124,6 +125,7 @@ def create_menu():
     # Infinite loop
     global game_state
     print(game_state)
+    global game_grid_size
     while game_state == "menu":
         # "in" is interpreted different ways, boolean or iterator, depending on the context
         # So I have to remove the parentheses from this and all lines, just to make things consistent
@@ -190,17 +192,30 @@ class Cell:
         left = margin_x + self.grid_pos_x * self.width
         top = margin_y + self.grid_pos_y * self.height
 
-        rect = pygame.Rect(left, top, self.width, self.height)
+        # Two rects, otherwise it looks like one big block of grey
+        outer_rect = pygame.Rect(left, top, self.width, self.height)
+
+        border = 1  # For the grid lines
+
+        inner_rect = pygame.Rect(
+            left + border,
+            top + border,
+            self.width - 2 * border,
+            self.height - 2 * border
+        )
+
+        pygame.draw.rect(screen, (30, 30, 30), outer_rect)
 
         # Never seen this formatting before
         color = (30, 225, 30) if self.status else (60, 60, 60)
-
-        pygame.draw.rect(screen, color, rect)
+        pygame.draw.rect(screen, color, inner_rect)
 
     def clicked(self, pos):
+        # TODO: Might* be able to simplify this, seems redundant
         left = margin_x + self.grid_pos_x * self.width
         top = margin_y + self.grid_pos_y * self.height
         rect = pygame.Rect(left, top, self.width, self.height)
+        # Returns true if pos is in rect, false otherwise
         return rect.collidepoint(pos)
 
 # Define grid builder function
@@ -215,6 +230,7 @@ def grid_builder(grid_cells):
         cell_width = cell_height
     elif (cell_width < cell_height):
         cell_height = cell_width
+    print("cell_widthxheight = ", cell_width, "x", cell_height)
 
     # Will need these
     top_neighbor = (-1, -1)
@@ -235,6 +251,8 @@ def grid_builder(grid_cells):
     bottom_left_neighbor_x = -1
     left_neighbor_x = -1
     top_left_neighbor_x = -1
+
+    # Or could just compute at runtime
 
     for x in range(grid_width):
         # To avoid doing things N^2 times
@@ -279,6 +297,7 @@ def start_game():
 
     global game_state
     print(game_state)
+    print(game_grid_size)
     while game_state == "game":
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -290,10 +309,18 @@ def start_game():
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 print("MOUSEBUTTONDOWN")
                 mouse_pos = pygame.mouse.get_pos()
+                for x in range(game_grid_size):
+                    for y in range(game_grid_size):
+                        if grid_cells[x][y].clicked(mouse_pos):
+                            if grid_cells[x][y].status == False:
+                                grid_cells[x][y].status = True
+                            else:
+                                grid_cells[x][y].status = False
+
 
         for x in range(game_grid_size):
             for y in range(game_grid_size):
-                print("Drawing Cell " + str(x) + ", " + str(y))
+                # print("Drawing Cell " + str(x) + ", " + str(y))
                 grid_cells[x][y].draw(screen)
         pygame.display.update()
 
