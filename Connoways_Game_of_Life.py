@@ -94,7 +94,7 @@ def create_menu():
     "Press ESC to quit.\n"
     "In game, press ESC to return to the menu.\n"
     "Click cells to toggle them on or off.\n"
-    "Press P to play or pause the game.\n\n"
+    "Press 1, 2, or 3 to autoplay, 0 to stop autoplay, space to progress once.\n\n"
     "Choose a grid size below to get started."
     )
 
@@ -126,6 +126,7 @@ def create_menu():
     global game_state
     print(game_state)
     global game_grid_size
+    game_grid_size = 2
     while game_state == "menu":
         # "in" is interpreted different ways, boolean or iterator, depending on the context
         # So I have to remove the parentheses from this and all lines, just to make things consistent
@@ -148,6 +149,8 @@ def create_menu():
                             game_grid_size = 32
                         elif "64" in button.text:
                             game_grid_size = 64
+                        else:
+                            break
                         game_state = "game"
                 # TODO: make this a separate function
 
