@@ -272,15 +272,85 @@ def grid_builder(grid_cells):
             cell_neighbors = (top_neighbor, top_right_neighbor, right_neighbor, bottom_right_neighbor, bottom_neighbor, bottom_left_neighbor, left_neighbor, top_left_neighbor)
             grid_cells[x][y] = Cell(x, y, cell_width, cell_height, cell_neighbors, False)
 
+# Define core game rules and grid updater
+def progress_game(grid_cells):
+    # Check grid cells based on Connoway's rules
+    # WARNING: Vibe coded
+    size = len(grid_cells)
+
+    # store next state separately
+    next_state = [
+        [False for _ in range(size)]
+        for _ in range(size)
+    ]
+
+    for x in range(size):
+        for y in range(size):
+
+            alive_neighbors = 0
+
+            # TODO: Could use the cell.neighbors stuff instead...
+            for dx in (-1, 0, 1):
+                for dy in (-1, 0, 1):
+                    if dx == 0 and dy == 0:
+                        continue
+
+                    nx = x + dx
+                    ny = y + dy
+
+                    # bounds check (no wrapping)
+                    if 0 <= nx < size and 0 <= ny < size:
+                        if grid_cells[nx][ny].status:
+                            alive_neighbors += 1
+
+            alive = grid_cells[x][y].status
+
+            # Conway rules
+            if alive:
+                next_state[x][y] = alive_neighbors in (2, 3)
+            else:
+                next_state[x][y] = alive_neighbors == 3
+
+    # apply results
+    for x in range(size):
+        for y in range(size):
+            grid_cells[x][y].status = next_state[x][y]
+
 # Define "progress one step" function
+def progress_one_step(grid_cells):
+    progress_game(grid_cells)
 
 # Define "autoplay" function
-
-# Define "autoplay speed one" helper function
-
-# Define "autoplay speed two" helper function
-
-# Define "autoplay speed three" helper function
+def autoplay(speed, last_step_time, grid_cells):
+    if speed == 0:
+        print("ERROR: Autoplay called on speed 0")
+    elif speed == 1:
+        now = pygame.time.get_ticks()
+        time_gap = now - last_step_time
+        # print("time gap: ", time_gap)
+        if time_gap >= 1000:
+            progress_game(grid_cells)
+            last_step_time = now
+            # print("last, now: ", last_step_time, ", ", now)
+        return last_step_time
+    elif speed == 2:
+        now = pygame.time.get_ticks()
+        time_gap = now - last_step_time
+        # print("time gap: ", time_gap)
+        if time_gap >= 500:
+            progress_game(grid_cells)
+            last_step_time = now
+            # print("last, now: ", last_step_time, ", ", now)
+        return last_step_time
+    elif speed == 3:
+        now = pygame.time.get_ticks()
+        time_gap = now - last_step_time
+        # print("time gap: ", time_gap)
+        if time_gap >= 250:
+            progress_game(grid_cells)
+            last_step_time = now
+            # print("last, now: ", last_step_time, ", ", now)
+        return last_step_time
 
 # Define "start game" function
 def start_game():
@@ -295,10 +365,19 @@ def start_game():
     # Call grid_builder to build the grid of cells based on the game_grid_size
     grid_builder(grid_cells)
 
+    # Set autoplay speed variable
+    autoplay_speed = 0 # 0-3 being the speeds of autoplay (eventually)
+    last_step_time = 0
+
+    # Kickoff
     global game_state
     print(game_state)
     print(game_grid_size)
     while game_state == "game":
+
+        # For performance
+        clock.tick(60)
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 print("QUIT")
@@ -316,7 +395,24 @@ def start_game():
                                 grid_cells[x][y].status = True
                             else:
                                 grid_cells[x][y].status = False
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                print("SPACE")
+                progress_one_step(grid_cells)
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_0:
+                print("0")
+                autoplay_speed = 0
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_1:
+                print("1")
+                autoplay_speed = 1
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_2:
+                print("2")
+                autoplay_speed = 2
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_3:
+                print("3")
+                autoplay_speed = 3
 
+        if autoplay_speed != 0:
+            last_step_time = autoplay(autoplay_speed, last_step_time, grid_cells)
 
         for x in range(game_grid_size):
             for y in range(game_grid_size):
