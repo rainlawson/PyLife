@@ -19,8 +19,6 @@ WINDOW_HEIGHT = int(SCREEN_HEIGHT * 0.8)
 margin_x = int(WINDOW_WIDTH * 0.05)  # 5% padding
 margin_y = int(WINDOW_HEIGHT * 0.05)
 
-# TODO: add min/max screen and window size checks
-
 # Declare cell sizes and initialize for debugging
 cell_width = WINDOW_WIDTH // 2
 cell_height = WINDOW_HEIGHT // 2
@@ -53,10 +51,9 @@ class MenuButton:
         self.width = width
         self.height = height
 
-    # TODO: make color class (use https://redketchup.io/color-picker)
+    # Can make colors using https://redketchup.io/color-picker
 
     def draw(self, screen):
-        # screen.blit(self.surface, self.location)
         line_height = self.font.get_linesize()
         line_x = self.location.left
         line_y = self.location.top
@@ -67,14 +64,8 @@ class MenuButton:
             line_y += line_height
 
     def clicked(self, pos):
-        # TODO: Use this method instead of the ugly if statement
         return self.location.collidepoint(pos)
 
-    # Old
-    # def make_menu_button(button_text, color_1, color_2, color_3, left, top, height, width):
-    #     font = pygame.font.SysFont("Arial", 30, bold=True)
-    #     surface = font.render(button_text, True, (color_1, color_2, color_3))
-    #     box = pygame.Rect(left, top, width, height)
 
 
 # Define "create menu" function
@@ -106,12 +97,11 @@ def create_menu():
 
     instruction_box = MenuButton(instructions, (255, 255, 255), instructions_left, instructions_top, instructions_width, instructions_height)
     menu_button_list.append(instruction_box)
-    # TODO: make it separate from menu buttons
 
     # Make buttons
     window_horizontal_midpoint = WINDOW_WIDTH // 2
     window_vertical_midpoint = WINDOW_HEIGHT // 2
-    # need 7 equal portions of window below the window vertical midpoint (space, button, space, button, space, button, space)
+    # Need 7 equal portions of window below the window vertical midpoint (space, button, space, button, space, button, space)
     button_spacer = (WINDOW_WIDTH // 2) // 7
 
     small_grid_button = MenuButton("16x16", (255, 0, 0), window_horizontal_midpoint - button_spacer, window_vertical_midpoint + button_spacer, button_spacer, button_spacer)
@@ -152,7 +142,6 @@ def create_menu():
                         else:
                             break
                         game_state = "game"
-                # TODO: make this a separate function
 
         mouse_x, mouse_y = pygame.mouse.get_pos()
 
@@ -166,39 +155,34 @@ def create_menu():
             button.draw(screen)
         pygame.display.update()
 
-# define neighbors class
-class Neighbors:
-    def __init__(self, top, top_right, right, bottom_right, bottom, bottom_left, left, top_left):
-        self.top = top
-        self.top_right = top_right
-        self.right = right
-        self.bottom_right = bottom_right
-        self.bottom = bottom
-        self.bottom_left = bottom_left
-        self.left = left
-        self.top_left = top_left
+# Did compute neighbors ahead of time, but more efficient (and easier) to just compute at runtime
 
 # Define cell class
 class Cell:
-    def __init__(self, grid_pos_x, grid_pos_y, width, height, neighbors, status):
+    def __init__(self, grid_pos_x, grid_pos_y, width, height, status):
         self.grid_pos_x = grid_pos_x
         self.grid_pos_y = grid_pos_y
         self.width = width
         self.height = height
-        self.neighbors = neighbors
         self.status = status
         self.live_color = (30, 225, 30)
         self.dead_color = (60, 60, 60)
 
     # Vibe coded
     def draw(self, screen):
-        left = margin_x + self.grid_pos_x * self.width
-        top = margin_y + self.grid_pos_y * self.height
+        # Inefficient but eh
+        grid_pixel_width = self.width * game_grid_size
+        grid_pixel_height = self.height * game_grid_size
 
-        # Two rects, otherwise it looks like one big block of grey
+        offset_x = (WINDOW_WIDTH - grid_pixel_width) // 2
+        offset_y = (WINDOW_HEIGHT - grid_pixel_height) // 2
+
+        left = offset_x + self.grid_pos_x * self.width
+        top = offset_y + self.grid_pos_y * self.height
+
         outer_rect = pygame.Rect(left, top, self.width, self.height)
 
-        border = 1  # For the grid lines
+        border = 1
 
         inner_rect = pygame.Rect(
             left + border,
@@ -209,14 +193,20 @@ class Cell:
 
         pygame.draw.rect(screen, (30, 30, 30), outer_rect)
 
-        # Never seen this formatting before
         color = (30, 225, 30) if self.status else (60, 60, 60)
         pygame.draw.rect(screen, color, inner_rect)
 
     def clicked(self, pos):
-        # TODO: Might* be able to simplify this, seems redundant
-        left = margin_x + self.grid_pos_x * self.width
-        top = margin_y + self.grid_pos_y * self.height
+        # Computing size of grid
+        grid_pixel_width = self.width * game_grid_size
+        grid_pixel_height = self.height * game_grid_size
+
+        # Offset to center grid in window
+        offset_x = (WINDOW_WIDTH - grid_pixel_width) // 2
+        offset_y = (WINDOW_HEIGHT - grid_pixel_height) // 2
+
+        left = offset_x + self.grid_pos_x * self.width
+        top = offset_y + self.grid_pos_y * self.height
         rect = pygame.Rect(left, top, self.width, self.height)
         # Returns true if pos is in rect, false otherwise
         return rect.collidepoint(pos)
@@ -235,45 +225,11 @@ def grid_builder(grid_cells):
         cell_height = cell_width
     print("cell_widthxheight = ", cell_width, "x", cell_height)
 
-    # Will need these
-    top_neighbor = (-1, -1)
-    top_right_neighbor = (-1, -1)
-    right_neighbor = (-1, -1)
-    bottom_right_neighbor = (-1, -1)
-    bottom_neighbor = (-1, -1)
-    bottom_left_neighbor = (-1, -1)
-    left_neighbor = (-1, -1)
-    top_left_neighbor = (-1, -1)
-
-    # Or, since tuples are immutable & N^2...
-    top_neighbor_x = -1
-    top_right_neighbor_x = -1
-    right_neighbor_x = -1
-    bottom_right_neighbor_x = -1
-    bottom_neighbor_x = -1
-    bottom_left_neighbor_x = -1
-    left_neighbor_x = -1
-    top_left_neighbor_x = -1
-
-    # Or could just compute at runtime
+    # Compute neighbors at runtime
 
     for x in range(grid_width):
-        # To avoid doing things N^2 times
-
         for y in range(grid_height):
-            # Computing this N^2 times (yeesh)
-            # TODO: Fix this
-            top_neighbor = (x, y + 1)
-            top_right_neighbor = (x + 1, y + 1)
-            right_neighbor = (x + 1, y)
-            bottom_right_neighbor = (x + 1, y - 1)
-            bottom_neighbor = (x, y - 1)
-            bottom_left_neighbor = (x - 1, y - 1)
-            left_neighbor = (x - 1, y)
-            top_left_neighbor = (x - 1, y + 1)
-
-            cell_neighbors = (top_neighbor, top_right_neighbor, right_neighbor, bottom_right_neighbor, bottom_neighbor, bottom_left_neighbor, left_neighbor, top_left_neighbor)
-            grid_cells[x][y] = Cell(x, y, cell_width, cell_height, cell_neighbors, False)
+            grid_cells[x][y] = Cell(x, y, cell_width, cell_height, False)
 
 # Define core game rules and grid updater
 def progress_game(grid_cells):
@@ -292,10 +248,10 @@ def progress_game(grid_cells):
 
             alive_neighbors = 0
 
-            # TODO: Could use the cell.neighbors stuff instead...
             for dx in (-1, 0, 1):
                 for dy in (-1, 0, 1):
                     if dx == 0 and dy == 0:
+                        # Never seen this before, either
                         continue
 
                     nx = x + dx
@@ -435,10 +391,6 @@ FPS = 30
 
 # Create infinite master loop
 while game_state != "quit":
-
-    # Implement master "quit" key
-    # if (event.type == pygame.K_ESCAPE):
-    #     game_state = "quit"
 
     # Check game state
     # If "menu", launch the menu
