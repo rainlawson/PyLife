@@ -347,8 +347,8 @@ def start_game():
 
         # Three autoplay buttons on the bottom
         btn_w3 = WINDOW_WIDTH // 3
-        game_autoplay_1_button = MenuButton("Slow", (0, 255, 0), 0, WINDOW_HEIGHT - btn_h, btn_w3, btn_h)
-        game_autoplay_2_button = MenuButton("Medium", (0, 255, 0), btn_w3, WINDOW_HEIGHT - btn_h, btn_w3, btn_h)
+        game_autoplay_1_button = MenuButton("Stop", (0, 255, 0), 0, WINDOW_HEIGHT - btn_h, btn_w3, btn_h)
+        game_autoplay_2_button = MenuButton("Slow", (0, 255, 0), btn_w3, WINDOW_HEIGHT - btn_h, btn_w3, btn_h)
         game_autoplay_3_button = MenuButton("Fast", (0, 255, 0), btn_w3 * 2, WINDOW_HEIGHT - btn_h, btn_w3, btn_h)
     else:
         # Landscape mode: buttons on left and right strips
