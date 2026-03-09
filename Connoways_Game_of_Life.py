@@ -328,6 +328,51 @@ def start_game():
     autoplay_speed = 0 # 0-3 being the speeds of autoplay (eventually)
     last_step_time = 0
 
+    # To make more user friendly (esp on mobile) (hi Jay)
+    game_button_list = []
+
+    # temp: MenuButton: def __init__(self, text, color, left, top, width, height)
+    # Going to reuse menu_button because too lazy + not necessary to make whole new class and make file longer
+    # Two buttons (quit and progress) either on the top or left
+    # Another 3 buttons (autoplay 1, 2, 3) on the bottom or right
+    # Warning: Partially vibe coded
+    if WINDOW_WIDTH < WINDOW_HEIGHT:
+        # Portrait mode: buttons on top and bottom strips
+        btn_w = WINDOW_WIDTH // 2
+        btn_h = margin_y * 2
+
+        # Two buttons, quit and progress, on the top
+        game_quit_button = MenuButton("Quit", (255, 0, 0), 0, 0, btn_w, btn_h)
+        game_progress_button = MenuButton("Progress", (0, 255, 0), btn_w, 0, btn_w, btn_h)
+
+        # Three autoplay buttons on the bottom
+        btn_w3 = WINDOW_WIDTH // 3
+        game_autoplay_1_button = MenuButton("Slow", (0, 255, 0), 0, WINDOW_HEIGHT - btn_h, btn_w3, btn_h)
+        game_autoplay_2_button = MenuButton("Medium", (0, 255, 0), btn_w3, WINDOW_HEIGHT - btn_h, btn_w3, btn_h)
+        game_autoplay_3_button = MenuButton("Fast", (0, 255, 0), btn_w3 * 2, WINDOW_HEIGHT - btn_h, btn_w3, btn_h)
+    else:
+        # Landscape mode: buttons on left and right strips
+        btn_w = margin_x * 2
+        btn_h = WINDOW_HEIGHT // 2
+
+        # Two buttons, quit and progress, on the left
+        game_quit_button = MenuButton("Quit", (255, 0, 0), 0, 0, btn_w, btn_h)
+        game_progress_button = MenuButton("Progress", (0, 255, 0), 0, btn_h, btn_w, btn_h)
+
+        # Three autoplay buttons on the right
+        btn_h3 = WINDOW_HEIGHT // 3
+        game_autoplay_1_button = MenuButton("Stop", (0, 255, 0), WINDOW_WIDTH - btn_w, 0, btn_w, btn_h3)
+        game_autoplay_2_button = MenuButton("Slow", (0, 255, 0), WINDOW_WIDTH - btn_w, btn_h3, btn_w, btn_h3)
+        game_autoplay_3_button = MenuButton("Fast", (0, 255, 0), WINDOW_WIDTH - btn_w, btn_h3 * 2, btn_w, btn_h3)
+
+    game_button_list = [
+        game_quit_button,
+        game_progress_button,
+        game_autoplay_1_button,
+        game_autoplay_2_button,
+        game_autoplay_3_button,
+    ]
+
     # Kickoff
     global game_state
     print(game_state)
@@ -336,6 +381,8 @@ def start_game():
 
         # For performance
         clock.tick(60)
+
+        mouse_x, mouse_y = pygame.mouse.get_pos()
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -354,6 +401,23 @@ def start_game():
                                 grid_cells[x][y].status = True
                             else:
                                 grid_cells[x][y].status = False
+                for button in game_button_list:
+                    if button.left <= mouse_x <= button.left + button.width and button.top <= mouse_y <= button.top + button.height:
+                        if "Quit" in button.text:
+                            print("QUIT")
+                            game_state = "menu"
+                        elif "Progress" in button.text:
+                            print("PROGRESS")
+                            progress_one_step(grid_cells)
+                        elif "Stop" in button.text:
+                            print("STOP")
+                            autoplay_speed = 0
+                        elif "Slow" in button.text:
+                            print("SLOW")
+                            autoplay_speed = 1
+                        elif "Fast" in button.text:
+                            print("FAST")
+                            autoplay_speed = 3
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 print("SPACE")
                 progress_one_step(grid_cells)
@@ -372,6 +436,16 @@ def start_game():
 
         if autoplay_speed != 0:
             last_step_time = autoplay(autoplay_speed, last_step_time, grid_cells)
+
+        # TODO: Add clickable buttons that change color when you hover over them
+        # Checking mouse pos against button pos, setting button color accordingly
+        for button in game_button_list:
+            if button.left <= mouse_x <= button.left + button.width and button.top <= mouse_y <= button.top + button.height:
+                button.color = button.hover_color
+            else:
+                button.color = button.base_color
+        for button in game_button_list:
+            button.draw(screen)
 
         for x in range(game_grid_size):
             for y in range(game_grid_size):
